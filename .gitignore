@@ -1,0 +1,44 @@
+# Gradle
+.gradle/
+build/
+**/build/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.aar
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Android
+/androidApp/release/
+*.keystore
+*.jks
+
+# iOS / Xcode
+xcuserdata/
+*.xcworkspace/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.xcscmblueprint
+Pods/
+.symlinks/
+
+# KMP / Kotlin Native
+*.klib
+*.dSYM/
