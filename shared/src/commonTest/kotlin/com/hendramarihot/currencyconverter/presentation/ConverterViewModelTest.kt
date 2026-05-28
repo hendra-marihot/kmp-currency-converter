@@ -8,7 +8,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -124,7 +126,23 @@ class ConverterViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
         assertNotNull(state.result)
-        assertEquals(100.0, state.result!!.fromAmount)
+        assertEquals(100.0, state.result?.fromAmount)
+    }
+
+    @Test
+    fun onConvert_whenScopeCancelled_doesNotSetErrorState() = runTest(testDispatcher) {
+        fakeApi.delayMillis = 1_000
+        val scope = CoroutineScope(testDispatcher)
+        testScopes.add(scope)
+        val viewModel = ConverterViewModel(convertCurrencyUseCase = useCase, scope = scope)
+        viewModel.onAmountChanged("100")
+
+        viewModel.onConvert()
+        advanceTimeBy(10)
+        scope.coroutineContext.cancelChildren()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.error)
     }
 
     @Test

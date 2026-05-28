@@ -10,6 +10,7 @@ class FakeCurrencyApi : CurrencyApi {
 
     var delayMillis: Long = 0
     var shouldThrow: Exception? = null
+    var errorResponse: ExchangeRateResponse? = null
 
     private val rates = mutableMapOf<String, Map<String, Double>>()
 
@@ -21,6 +22,7 @@ class FakeCurrencyApi : CurrencyApi {
         callCount++
         if (delayMillis > 0) delay(delayMillis)
         shouldThrow?.let { throw it }
+        errorResponse?.let { return it }
         val conversionRates = rates[baseCurrency]
             ?: throw IllegalArgumentException("No rates configured for $baseCurrency")
         return ExchangeRateResponse(

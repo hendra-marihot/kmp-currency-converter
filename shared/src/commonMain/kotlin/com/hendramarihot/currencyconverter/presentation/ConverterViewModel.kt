@@ -4,6 +4,7 @@ import com.hendramarihot.currencyconverter.data.model.ConversionResult
 import com.hendramarihot.currencyconverter.data.model.Currency
 import com.hendramarihot.currencyconverter.data.model.supportedCurrencies
 import com.hendramarihot.currencyconverter.domain.ConvertCurrencyUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +64,8 @@ class ConverterViewModel(
                     amount = amount,
                 )
                 _uiState.update { it.copy(result = result, isLoading = false) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(error = e.message ?: "Conversion failed", isLoading = false)

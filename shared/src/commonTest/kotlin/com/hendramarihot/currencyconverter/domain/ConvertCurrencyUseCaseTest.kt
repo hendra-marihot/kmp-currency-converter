@@ -55,6 +55,15 @@ class ConvertCurrencyUseCaseTest {
     }
 
     @Test
+    fun invoke_sameCurrency_returnsRateOneWithoutNetwork() = runTest {
+        val result = useCase(fromCode = "USD", toCode = "USD", amount = 100.0)
+
+        assertEquals(1.0, result.rate)
+        assertEquals(100.0, result.toAmount)
+        assertEquals(0, fakeApi.callCount)
+    }
+
+    @Test
     fun invoke_populatesCorrectCurrencyObjects() = runTest {
         val result = useCase(fromCode = "USD", toCode = "EUR", amount = 50.0)
 

@@ -25,5 +25,5 @@ val sharedModule = module {
     }
     single<CurrencyApi> { CurrencyApiImpl(get()) }
     single { CurrencyRepository(get()) }
-    factory { ConvertCurrencyUseCase(get()) }
+    single { ConvertCurrencyUseCase(get()) }
 }

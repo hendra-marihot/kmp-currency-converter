@@ -6,8 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ExchangeRateResponse(
     val result: String,
-    @SerialName("base_code") val baseCode: String,
-    @SerialName("conversion_rates") val conversionRates: Map<String, Double>,
+    @SerialName("error-type") val errorType: String? = null,
+    @SerialName("base_code") val baseCode: String? = null,
+    @SerialName("rates") val conversionRates: Map<String, Double>? = null,
 )
 
 data class ExchangeRate(

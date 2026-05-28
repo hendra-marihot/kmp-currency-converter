@@ -3,10 +3,12 @@ package com.hendramarihot.currencyconverter.data
 import com.hendramarihot.currencyconverter.data.model.supportedCurrencies
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import com.hendramarihot.currencyconverter.data.model.ExchangeRateResponse
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class CurrencyRepositoryTest {
 
@@ -60,6 +62,29 @@ class CurrencyRepositoryTest {
 
         assertEquals(1, fakeApi.callCount)
         results.forEach { assertEquals(0.85, it.rate) }
+    }
+
+    @Test
+    fun getExchangeRate_apiReturnsErrorResult_throwsWithErrorType() = runTest {
+        fakeApi.errorResponse = ExchangeRateResponse(
+            result = "error",
+            errorType = "unsupported-code",
+        )
+
+        val error = assertFailsWith<IllegalStateException> {
+            repository.getExchangeRate("USD", "EUR")
+        }
+        assertTrue(error.message?.contains("unsupported-code") == true)
+    }
+
+    @Test
+    fun getExchangeRate_sameCurrency_returnsRateOneWithoutNetwork() = runTest {
+        val rate = repository.getExchangeRate("USD", "USD")
+
+        assertEquals(1.0, rate.rate)
+        assertEquals("USD", rate.baseCurrency)
+        assertEquals("USD", rate.targetCurrency)
+        assertEquals(0, fakeApi.callCount)
     }
 
     @Test

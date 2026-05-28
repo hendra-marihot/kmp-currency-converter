@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 
+private val AMOUNT_REGEX = Regex("^\\d*\\.?\\d*$")
+
 @Composable
 fun AmountInput(
     amount: String,
@@ -17,7 +19,7 @@ fun AmountInput(
     OutlinedTextField(
         value = amount,
         onValueChange = { input ->
-            if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d*$"))) {
+            if (input.isEmpty() || input.matches(AMOUNT_REGEX)) {
                 onAmountChanged(input)
             }
         },

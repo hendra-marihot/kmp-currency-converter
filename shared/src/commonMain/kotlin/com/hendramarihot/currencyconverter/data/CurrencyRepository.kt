@@ -17,8 +17,12 @@ class CurrencyRepository(private val api: CurrencyApi) {
     fun getSupportedCurrencies(): List<Currency> = supportedCurrencies
 
     suspend fun getExchangeRate(from: String, to: String): ExchangeRate {
-        val rates = cachedRates.value[from] ?: fetchAndCacheRates(from)
-        val rate = rates[to] ?: throw IllegalArgumentException("Rate not found for $to")
+        val rate = if (from == to) {
+            1.0
+        } else {
+            val rates = cachedRates.value[from] ?: fetchAndCacheRates(from)
+            rates[to] ?: throw IllegalArgumentException("Rate not found for $to")
+        }
 
         return ExchangeRate(
             baseCurrency = from,
@@ -33,8 +37,14 @@ class CurrencyRepository(private val api: CurrencyApi) {
             cachedRates.value[baseCurrency]?.let { return it }
 
             val response = api.getExchangeRates(baseCurrency)
-            cachedRates.update { it + (baseCurrency to response.conversionRates) }
-            return response.conversionRates
+            val rates = response.conversionRates
+            if (response.result != "success" || rates == null) {
+                throw IllegalStateException(
+                    "Failed to fetch rates for $baseCurrency: ${response.errorType ?: response.result}",
+                )
+            }
+            cachedRates.update { it + (baseCurrency to rates) }
+            return rates
         }
     }
 }
