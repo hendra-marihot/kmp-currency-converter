@@ -1,29 +1,20 @@
 # KMP Currency Converter
 
+[![CI](https://github.com/hendra-marihot/kmp-currency-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/hendra-marihot/kmp-currency-converter/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 A currency converter built with Kotlin Multiplatform — not to ship a product, but to
 demonstrate how I think about shared business logic across platforms. This is one piece
 in a portfolio series, each targeting a different competency expected of a senior mobile
 engineer.
 
-<!-- TODO: Add a screenshot of the Android app mid-conversion
-     (amount entered, currencies selected, result card visible).
-     Save it to docs/screenshot.png, then uncomment the line below.
-     A single static screenshot is enough — this isn't a product listing.
-
-![App Screenshot](docs/screenshot.png)
--->
-
-<!-- TODO: Review the "Why This Project Exists" section below — it was drafted based
-     on inference, not your words. Adjust the tone and details to sound like you. -->
-
-<!-- TODO: Once other portfolio repos exist, add a "See Also" section at the bottom
-     linking to them so a hiring manager can find the full series. -->
+![Android app converting USD to IDR with shared KMP logic, then swapping currencies](docs/demo.gif)
 
 ## Why This Project Exists
 
-I work primarily in Flutter. Building the same problem in KMP was deliberate: I wanted
-to prove — to myself and to anyone reading this — that I understand cross-platform
-architecture as a *pattern*, not as a framework feature. Flutter's shared UI layer is
+I've shipped cross-platform apps in Flutter. Building the same kind of problem in KMP
+was deliberate: I wanted to prove — to myself and to anyone reading this — that I
+understand cross-platform architecture as a *pattern*, not as a framework feature. Flutter's shared UI layer is
 convenient, but it can mask whether an engineer actually understands where platform
 boundaries should live and how to manage them.
 
