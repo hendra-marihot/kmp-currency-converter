@@ -5,7 +5,7 @@ plugins {
 }
 
 kotlin {
-    // One JDK for every JVM-based target, Android included.
+    // Pin the JDK that runs the compilers so builds match across machines and CI.
     jvmToolchain(libs.versions.java.get().toInt())
 
     // Android target through AGP's KMP library plugin. commonTest runs here as host tests.

@@ -91,7 +91,7 @@ Not tested: the Compose UI and the Ktor client setup. The UI is thin, and testin
 # Output: shared/build/XCFrameworks/debug/shared.xcframework
 ```
 
-Needs JDK 17 and the Android SDK. The toolchain resolver downloads JDK 17 when no local JDK matches, and AGP installs the API 37 platform (`platforms;android-37.0`) once the SDK licenses are accepted. Builds with Gradle 9.7, AGP 9.3 and Kotlin 2.4. Rates come from [open.er-api.com](https://www.exchangerate-api.com/docs/free), which needs no API key.
+Needs a JDK 17 or newer to run Gradle and the API 37 platform (`platforms;android-37.0`). If the local JDK is newer than 17, the toolchain resolver downloads JDK 17 for compilation. AGP installs the platform when the SDK licenses are accepted. Builds with Gradle 9.7, AGP 9.3 and Kotlin 2.4. Rates come from [open.er-api.com](https://www.exchangerate-api.com/docs/free), which needs no API key.
 
 ## Stack
 

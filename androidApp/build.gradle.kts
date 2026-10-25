@@ -24,8 +24,8 @@ android {
     }
 }
 
-// Kotlin comes from AGP's built-in support. Pin the JDK so a newer local JDK
-// cannot leak APIs into bytecode that targets Java 17.
+// Kotlin comes from AGP's built-in support.
+// Pin the JDK that runs the compilers so builds match across machines and CI.
 kotlin {
     jvmToolchain(javaVersion.toInt())
 }
