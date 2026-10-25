@@ -151,7 +151,7 @@ These rules are non-negotiable for the shared module:
 3. **Koin for DI:**
    - `koin-core` in `:shared` commonMain
    - `koin-android` + `koin-androidx-compose` in `:androidApp` only
-   - Koin 4.0: use `org.koin.core.module.dsl.viewModel` (not the deprecated `org.koin.androidx.viewmodel.dsl.viewModel`)
+   - Koin 4.x: use `org.koin.core.module.dsl.viewModel` (not the deprecated `org.koin.androidx.viewmodel.dsl.viewModel`)
    - Define `sharedModule` in `SharedModule.kt`; define `androidModule` in `AndroidModule.kt`
 
 4. **kotlinx.serialization for JSON** — annotate all API response classes with

@@ -42,3 +42,4 @@ Pods/
 # KMP / Kotlin Native
 *.klib
 *.dSYM/
+.kotlin/
