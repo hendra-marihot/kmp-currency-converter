@@ -3,30 +3,17 @@
 [![CI](https://github.com/hendra-marihot/kmp-currency-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/hendra-marihot/kmp-currency-converter/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-A currency converter built with Kotlin Multiplatform — not to ship a product, but to
-demonstrate how I think about shared business logic across platforms. This is one piece
-in a portfolio series, each targeting a different competency expected of a senior mobile
-engineer.
+A currency converter built with Kotlin Multiplatform. The shared module owns data access, domain logic and presentation state. Android renders it with Jetpack Compose. The repo shows how I draw the line between shared and platform code.
 
 ![Android app converting USD to IDR with shared KMP logic, then swapping currencies](docs/demo.gif)
 
-## Why This Project Exists
+## Why KMP
 
-I've shipped cross-platform apps in Flutter. Building the same kind of problem in KMP
-was deliberate: I wanted to prove — to myself and to anyone reading this — that I
-understand cross-platform architecture as a *pattern*, not as a framework feature. Flutter's shared UI layer is
-convenient, but it can mask whether an engineer actually understands where platform
-boundaries should live and how to manage them.
-
-KMP forces those decisions to be explicit. The shared module compiles to a JVM library
-for Android and a native framework for iOS. There's no shared UI — you write each
-platform's UI natively and consume the shared logic. That constraint is the point.
+I have shipped cross-platform apps in Flutter. Flutter shares the UI too, which can hide whether an engineer knows where platform boundaries belong. KMP makes that choice explicit. The shared module compiles to a JVM library for Android and a native framework for iOS. Each platform writes its own UI and consumes the shared logic.
 
 ## Architecture
 
-The shared module owns everything except the UI: data access, domain logic, and
-presentation state. Platform apps are thin wrappers that provide a UI and a lifecycle-
-aware coroutine scope.
+The shared module owns everything except the UI. Platform apps provide a UI and a lifecycle-aware coroutine scope.
 
 ```mermaid
 graph TB
@@ -52,123 +39,77 @@ graph TB
     PRESENTATION -.-> SWIFT
 ```
 
-Three decisions shaped this architecture:
+Three decisions shape it:
 
-**CoroutineScope injection for the shared ViewModel.** The shared `ConverterViewModel`
-takes a `CoroutineScope` as a constructor parameter — it never references `viewModelScope`
-or any AndroidX class. On Android, the wrapper ViewModel passes its `viewModelScope`. On
-iOS, you'd pass a scope tied to SwiftUI's lifecycle. In tests, you pass a
-`CoroutineScope(StandardTestDispatcher())` for deterministic execution. I chose this over libraries like
-moko-mvvm because it's the simplest approach that keeps the shared module completely
-platform-free — no added dependencies, no expect/actual boilerplate, and the ViewModel
-remains a plain Kotlin class that's trivial to test.
+**The shared ViewModel takes a `CoroutineScope`.** `ConverterViewModel` never references `viewModelScope` or any AndroidX class. Android passes `viewModelScope` from a thin wrapper. iOS would pass a scope tied to the SwiftUI lifecycle. Tests pass `CoroutineScope(StandardTestDispatcher())`. This keeps the shared module free of platform code with no extra library and no expect/actual boilerplate.
 
-**Mutex-guarded caching with double-check.** The `CurrencyRepository` uses a coroutine
-`Mutex` to prevent thundering-herd API calls. If five conversions from USD fire
-concurrently, only one HTTP request goes out; the rest wait on the lock and then read from
-cache. A double-check after acquiring the lock prevents the race between the initial cache
-miss and lock acquisition. This matters less in a single-user app than in a backend
-service, but it demonstrates the pattern correctly — and I wrote a
-[concurrency test](shared/src/commonTest/kotlin/com/hendramarihot/currencyconverter/data/CurrencyRepositoryTest.kt)
-that fires five async requests and asserts exactly one API call.
+**A `Mutex` guards the cache.** If five conversions from USD start at once, only one HTTP request goes out. The rest wait on the lock and read from cache. A second check after taking the lock closes the race between the cache miss and the lock. A [concurrency test](shared/src/commonTest/kotlin/com/hendramarihot/currencyconverter/data/CurrencyRepositoryTest.kt) fires five requests and asserts one API call.
 
-**Atomic state updates via `MutableStateFlow.update {}`.**  All ViewModel state mutations
-use the `update {}` lambda instead of direct `.value` assignment. This avoids non-atomic
-read-modify-write races when multiple coroutines mutate state concurrently. It's a small
-thing, but getting it wrong causes the kind of subtle, intermittent bugs that only show up
-under load.
+**State changes go through `MutableStateFlow.update {}`.** Direct `.value` writes are read-modify-write and race under concurrency. `update {}` is atomic.
 
-## Key Technical Decisions
+## Library choices
 
-| Decision | Over | Rationale |
+| Choice | Instead of | Reason |
 |---|---|---|
-| Ktor for HTTP | Retrofit + OkHttp | Ktor provides both Android (OkHttp engine) and iOS (Darwin engine) from a single API. Retrofit doesn't run on iOS. |
-| Koin for DI | Hilt, Kodein, manual | Koin has first-class KMP support as of 4.0 and stays lightweight. Hilt is Android-only. Kodein works but has a smaller ecosystem. Manual DI works for this scale but doesn't demonstrate real-world patterns. |
-| Hand-written fakes for tests | Mockito, MockK | `FakeCurrencyApi` implements the real `CurrencyApi` interface with configurable behavior (delay, errors, custom rates). It runs on all KMP targets — mock libraries are JVM-only. It's also more readable: the test double's behavior is explicit in the test, not hidden behind `when().thenReturn()`. |
-| kotlinx.serialization | Gson, Moshi | Native Kotlin, works on all KMP targets. Gson and Moshi are JVM-only. |
-| In-memory cache, no persistence | Room, SQLDelight | Rates change frequently enough that session-scoped caching is sufficient. Adding a database would increase complexity without meaningfully improving the user experience for a converter. |
+| Ktor | Retrofit + OkHttp | One API with an OkHttp engine on Android and a Darwin engine on iOS. Retrofit does not run on iOS |
+| Koin | Hilt, Kodein, manual DI | First-class KMP support since 4.0 and lightweight. Hilt is Android only |
+| Hand-written fakes | Mockito, MockK | `FakeCurrencyApi` implements the real `CurrencyApi` interface with configurable delay, errors and rates. It runs on every KMP target. Mock libraries are JVM only |
+| kotlinx.serialization | Gson, Moshi | Kotlin-native and runs on every target |
+| In-memory cache | Room, SQLDelight | Rates change often, so a session cache is enough. A database adds complexity without helping the user |
 
-## Testing
+## Tests
 
-22 unit tests across three layers. Run with `./gradlew :shared:testDebugUnitTest`.
+28 tests in `shared/src/commonTest`. Run them with `./gradlew :shared:testDebugUnitTest`.
 
-**What's tested:**
-- Repository caching logic — cache hits, cache misses, error propagation, and the
-  concurrent-fetch-deduplication test described above (6 tests)
-- Use case — conversion math, zero amounts, unknown currency error paths, result
-  object correctness (6 tests)
-- ViewModel — initial state, loading transitions, successful conversion, error states,
-  currency swapping, invalid input rejection (10 tests, using `StandardTestDispatcher`
-  and `advanceUntilIdle()`)
+- **Repository (8):** cache hits and misses, error propagation, concurrent-fetch deduplication
+- **Use case (7):** conversion math, zero amounts, unknown currencies, result shape
+- **ViewModel (11):** initial state, loading transitions, success, errors, swapping, invalid input. Uses `StandardTestDispatcher` and `advanceUntilIdle()`
+- **Response parsing (2):** `ExchangeRateResponse` deserialization
 
-**What's deliberately not tested:**
-- Compose UI (no `createComposeRule()` tests). The UI is thin enough that ViewModel tests
-  cover the logic. Adding screenshot tests would be a reasonable next step.
-- Ktor client configuration and JSON deserialization. These are framework internals; testing
-  them would be testing Ktor, not my code.
+Not tested: the Compose UI and the Ktor client setup. The UI is thin, and testing the client would test Ktor.
 
-## Non-Goals
+## Out of scope
 
-These are scoping decisions, not gaps:
+- **iOS UI.** The XCFramework builds and the consumption pattern is documented. The SwiftUI side is a stub. A full iOS UI is a separate project about SwiftUI and KMP interop.
+- **Persistence.** Session caching is enough for exchange rates.
+- **Staleness indicators.** The model has a timestamp (`kotlinx.datetime`) but the UI does not show it.
+- **A full currency list.** 15 currencies are hardcoded. Production would fetch the list from the API.
 
-- **iOS UI.** The shared XCFramework builds and the consuming pattern is documented, but
-  the SwiftUI side is stubs. This project demonstrates the shared architecture layer; a
-  full iOS UI would be a separate portfolio piece about SwiftUI + KMP interop.
-- **Offline mode / persistence.** Exchange rates are ephemeral. Caching for the session
-  lifetime is enough. SQLDelight or Room would add complexity without teaching anything new
-  about the architecture.
-- **Rate refresh / staleness indicators.** The timestamp field exists in the data model
-  (using `kotlinx.datetime`) but isn't surfaced in the UI. I'd add a "last updated" label
-  and auto-refresh in a production app.
-- **Exhaustive currency list.** 15 popular currencies are hardcoded. A production app would
-  fetch the supported list from the API. Hardcoding keeps the focus on architecture.
+## What I would improve
 
-## Limitations and What I'd Improve
+- **Error messages are raw exception strings.** They go straight to the Snackbar. Production needs a mapping layer with localizable messages.
+- **No retry.** A failed call shows an error at once. Backoff and a retry button would help on flaky networks.
+- **No Compose previews.** `AmountInput`, `CurrencySelector` and `ConversionResultCard` have no `@Preview` functions.
+- **No coverage report.** Kover and a coverage gate would make the test discipline visible.
 
-- **Error messages are raw exception strings.** `"Network error"` and `"Rate not found for
-  XYZ"` go straight to the Snackbar. A production app needs a proper error mapping layer
-  that translates exceptions into user-friendly, localizable messages.
-- **No retry logic.** A failed API call surfaces an error immediately. Exponential backoff
-  with a retry button would be more resilient on flaky mobile networks.
-- **No Compose previews.** Individual components (`AmountInput`, `CurrencySelector`,
-  `ConversionResultCard`) don't have `@Preview` functions, making it harder to iterate on
-  UI in isolation.
-- **CI runs tests but doesn't report coverage.** Adding Kover and a coverage gate would
-  make the test discipline more visible.
-
-## Build and Run
+## Build and run
 
 ```bash
-# Build and install the Android app
-./gradlew :androidApp:installDebug
-
-# Run shared module tests
-./gradlew :shared:testDebugUnitTest
-
-# Build the iOS XCFramework
-./gradlew :shared:assembleXCFramework
+./gradlew :androidApp:installDebug        # Android app
+./gradlew :shared:testDebugUnitTest       # shared tests
+./gradlew :shared:assembleXCFramework     # iOS framework
 # Output: shared/build/XCFrameworks/debug/shared.xcframework
 ```
 
-Requires JDK 17+ and Android SDK. Open in Android Studio for the best experience.
+Needs JDK 17 and the Android SDK. Rates come from [open.er-api.com](https://www.exchangerate-api.com/docs/free), which needs no API key.
 
-## Tech Stack
+## Stack
 
 | Technology | Version | Role |
 |---|---|---|
-| Kotlin Multiplatform | 2.1.21 | Shared business logic across Android and iOS |
-| Ktor | 3.1.3 | HTTP client with platform-specific engines |
-| kotlinx.serialization | 1.8.1 | JSON parsing (KMP-native) |
-| kotlinx.coroutines | 1.10.2 | Async operations and Flow-based state |
-| kotlinx.datetime | 0.6.0 | Platform-agnostic timestamps |
-| Koin | 4.0.0 | Multiplatform dependency injection |
+| Kotlin Multiplatform | 2.1.21 | Shared logic for Android and iOS |
+| Ktor | 3.1.3 | HTTP client with platform engines |
+| kotlinx.serialization | 1.8.1 | JSON parsing |
+| kotlinx.coroutines | 1.10.2 | Async work and Flow state |
+| kotlinx.datetime | 0.6.0 | Platform-neutral timestamps |
+| Koin | 4.0.0 | Dependency injection |
 | Jetpack Compose BOM | 2025.05.01 | Android UI (Material 3) |
 
 ## Related repositories
 
-This is one piece of a portfolio covering different aspects of senior mobile engineering:
+Each repo in this set covers one area of mobile engineering.
 
-| Repository | Focus area |
+| Repository | Focus |
 |---|---|
 | [compose-newsreader](https://github.com/hendra-marihot/compose-newsreader) | Multi-module Android, Hilt, Room, offline-first |
 | [android-design-system](https://github.com/hendra-marihot/android-design-system) | Compose component library, design tokens |
@@ -177,8 +118,8 @@ This is one piece of a portfolio covering different aspects of senior mobile eng
 | [flutter-expense-tracker](https://github.com/hendra-marihot/flutter-expense-tracker) | Clean Architecture, Riverpod, Drift, Material 3 |
 | [flutter-ui-toolkit](https://github.com/hendra-marihot/flutter-ui-toolkit) | Reusable widgets, shimmer, adaptive layouts |
 | [flutter-platform-bridge](https://github.com/hendra-marihot/flutter-platform-bridge) | Platform channels, native interop |
-| [mobile-ci-cd-templates](https://github.com/hendra-marihot/mobile-ci-cd-templates) | CI/CD, release automation, infrastructure |
+| [mobile-ci-cd-templates](https://github.com/hendra-marihot/mobile-ci-cd-templates) | CI/CD, release automation |
 
 ## License
 
-Copyright 2026 Hendra Marihot. [Apache License 2.0](LICENSE).
+Copyright 2026 Hendra Marihot. Licensed under the [Apache License 2.0](LICENSE).
