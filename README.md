@@ -59,7 +59,7 @@ Three decisions shape it:
 
 ## Tests
 
-28 tests in `shared/src/commonTest`. Run them with `./gradlew :shared:testDebugUnitTest`.
+28 tests in `shared/src/commonTest`. Run them with `./gradlew :shared:testAndroidHostTest`. They run as Android host tests through the AGP KMP library plugin, and `./gradlew :shared:allTests` adds the iOS simulator run on a Mac.
 
 - **Repository (8):** cache hits and misses, error propagation, concurrent-fetch deduplication
 - **Use case (7):** conversion math, zero amounts, unknown currencies, result shape
@@ -72,7 +72,7 @@ Not tested: the Compose UI and the Ktor client setup. The UI is thin, and testin
 
 - **iOS UI.** The XCFramework builds and the consumption pattern is documented. The SwiftUI side is a stub. A full iOS UI is a separate project about SwiftUI and KMP interop.
 - **Persistence.** Session caching is enough for exchange rates.
-- **Staleness indicators.** The model has a timestamp (`kotlinx.datetime`) but the UI does not show it.
+- **Staleness indicators.** The model has an epoch-millisecond timestamp from `kotlin.time.Clock` but the UI does not show it.
 - **A full currency list.** 15 currencies are hardcoded. Production would fetch the list from the API.
 
 ## What I would improve
@@ -86,24 +86,23 @@ Not tested: the Compose UI and the Ktor client setup. The UI is thin, and testin
 
 ```bash
 ./gradlew :androidApp:installDebug        # Android app
-./gradlew :shared:testDebugUnitTest       # shared tests
+./gradlew :shared:testAndroidHostTest     # shared tests
 ./gradlew :shared:assembleXCFramework     # iOS framework
 # Output: shared/build/XCFrameworks/debug/shared.xcframework
 ```
 
-Needs JDK 17 and the Android SDK. Rates come from [open.er-api.com](https://www.exchangerate-api.com/docs/free), which needs no API key.
+Needs JDK 17 and the Android SDK with API 37. Builds with Gradle 9.7, AGP 9.3 and Kotlin 2.4. Rates come from [open.er-api.com](https://www.exchangerate-api.com/docs/free), which needs no API key.
 
 ## Stack
 
 | Technology | Version | Role |
 |---|---|---|
-| Kotlin Multiplatform | 2.1.21 | Shared logic for Android and iOS |
-| Ktor | 3.1.3 | HTTP client with platform engines |
-| kotlinx.serialization | 1.8.1 | JSON parsing |
-| kotlinx.coroutines | 1.10.2 | Async work and Flow state |
-| kotlinx.datetime | 0.6.0 | Platform-neutral timestamps |
-| Koin | 4.0.0 | Dependency injection |
-| Jetpack Compose BOM | 2025.05.01 | Android UI (Material 3) |
+| Kotlin Multiplatform | 2.4.21 | Shared logic for Android and iOS |
+| Ktor | 3.6.0 | HTTP client with platform engines |
+| kotlinx.serialization | 1.12.0 | JSON parsing |
+| kotlinx.coroutines | 1.11.0 | Async work and Flow state |
+| Koin | 4.2.2 | Dependency injection |
+| Jetpack Compose BOM | 2026.09.00 | Android UI (Material 3) |
 
 ## Related repositories
 

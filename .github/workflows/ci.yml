@@ -30,7 +30,7 @@ jobs:
         run: ./gradlew :shared:build
 
       - name: Run shared unit tests
-        run: ./gradlew :shared:testDebugUnitTest
+        run: ./gradlew :shared:testAndroidHostTest
 
       - name: Build Android app (debug)
         run: ./gradlew :androidApp:assembleDebug
