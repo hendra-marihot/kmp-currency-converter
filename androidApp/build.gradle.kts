@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+val javaVersion = libs.versions.java.get()
+
 android {
     namespace = "com.hendramarihot.currencyconverter.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -14,8 +16,8 @@ android {
         versionName = "1.0.0"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
-        targetCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
     buildFeatures {
         compose = true
@@ -25,7 +27,7 @@ android {
 // Kotlin comes from AGP's built-in support. Pin the JDK so a newer local JDK
 // cannot leak APIs into bytecode that targets Java 17.
 kotlin {
-    jvmToolchain(libs.versions.java.get().toInt())
+    jvmToolchain(javaVersion.toInt())
 }
 
 dependencies {

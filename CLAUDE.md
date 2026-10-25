@@ -32,6 +32,9 @@ Rates are cached in-memory per base currency for the session lifetime.
 
 Gradle 9.7.1, AGP 9.3.2, Kotlin 2.4.21. compileSdk 37, targetSdk 36, minSdk 26, JDK 17. SDK levels
 and the Java release live in `gradle/libs.versions.toml` and both modules read them from there.
+Local prerequisites: JDK 17 (the Foojay toolchain resolver in `settings.gradle.kts` downloads it
+when no local JDK matches) and the API 37 platform `platforms;android-37.0` (AGP installs it when
+the SDK licenses are accepted).
 
 ## Build Commands
 
