@@ -1,26 +1,33 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
 
+val javaVersion = libs.versions.java.get()
+
 android {
     namespace = "com.hendramarihot.currencyconverter.android"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig {
         applicationId = "com.hendramarihot.currencyconverter"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0.0"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
     buildFeatures {
         compose = true
     }
+}
+
+// Kotlin comes from AGP's built-in support.
+// Pin the JDK that runs the compilers so builds match across machines and CI.
+kotlin {
+    jvmToolchain(javaVersion.toInt())
 }
 
 dependencies {

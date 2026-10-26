@@ -22,11 +22,19 @@ Rates are cached in-memory per base currency for the session lifetime.
 
 | Module | Language | Role |
 |---|---|---|
-| `:shared` | Kotlin (KMP) | Data layer (Ktor API, repository), domain use cases, shared ViewModel + UiState |
-| `:androidApp` | Kotlin + Compose | Android UI, AndroidX ViewModel wrapper, Koin DI setup |
+| `:shared` | Kotlin (KMP) | Data layer (Ktor API, repository), domain use cases, shared ViewModel + UiState. Android target via `com.android.kotlin.multiplatform.library` |
+| `:androidApp` | Kotlin + Compose | Android UI, AndroidX ViewModel wrapper, Koin DI setup. Kotlin comes from AGP 9 built-in support, no `kotlin.android` plugin |
 | `iosApp/` | Swift + SwiftUI | Placeholder stub; Swift files exist but no Xcode project yet |
 
 ---
+
+## Toolchain
+
+Gradle 9.7.1, AGP 9.3.2, Kotlin 2.4.21. compileSdk 37, targetSdk 36, minSdk 26, JDK 17. SDK levels
+and the Java release live in `gradle/libs.versions.toml` and both modules read them from there.
+Needs a JDK 17 or newer to run Gradle and the API 37 platform (`platforms;android-37.0`). If the
+local JDK is newer than 17, the toolchain resolver downloads JDK 17 for compilation. AGP installs
+the platform when the SDK licenses are accepted.
 
 ## Build Commands
 
@@ -44,8 +52,8 @@ Rates are cached in-memory per base currency for the session lifetime.
 ./gradlew :shared:assembleXCFramework
 # Output: shared/build/XCFrameworks/debug/shared.xcframework
 
-# Run Android unit tests
-./gradlew :shared:testDebugUnitTest
+# Run unit tests (shared tests are Android host tests under the AGP KMP library plugin)
+./gradlew :shared:testAndroidHostTest
 ./gradlew :androidApp:testDebugUnitTest
 
 # Lint
@@ -122,13 +130,12 @@ androidApp/src/main/kotlin/com/hendramarihot/currencyconverter/android/
 
 | Technology | Version | Purpose |
 |---|---|---|
-| Kotlin Multiplatform | 2.1.21 | Shared business logic |
-| Ktor | 3.1.3 | HTTP client (platform engines: OkHttp / Darwin) |
-| kotlinx.serialization | 1.8.1 | JSON parsing |
-| kotlinx.coroutines | 1.10.2 | Async / Flow-based state |
-| kotlinx.datetime | 0.6.0 | Platform-agnostic timestamps |
-| Koin | 4.0.0 | Dependency injection |
-| Jetpack Compose BOM | 2025.05.01 | Android UI |
+| Kotlin Multiplatform | 2.4.21 | Shared business logic |
+| Ktor | 3.6.0 | HTTP client (platform engines: OkHttp / Darwin) |
+| kotlinx.serialization | 1.12.0 | JSON parsing |
+| kotlinx.coroutines | 1.11.0 | Async / Flow-based state |
+| Koin | 4.2.2 | Dependency injection |
+| Jetpack Compose BOM | 2026.09.00 | Android UI |
 | SwiftUI | — | iOS UI (placeholder) |
 
 ---
@@ -147,15 +154,16 @@ These rules are non-negotiable for the shared module:
 3. **Koin for DI:**
    - `koin-core` in `:shared` commonMain
    - `koin-android` + `koin-androidx-compose` in `:androidApp` only
-   - Koin 4.0: use `org.koin.core.module.dsl.viewModel` (not the deprecated `org.koin.androidx.viewmodel.dsl.viewModel`)
+   - Koin 4.x: use `org.koin.core.module.dsl.viewModel` (not the deprecated `org.koin.androidx.viewmodel.dsl.viewModel`)
    - Define `sharedModule` in `SharedModule.kt`; define `androidModule` in `AndroidModule.kt`
 
 4. **kotlinx.serialization for JSON** — annotate all API response classes with
    `@Serializable`. Use `@SerialName("snake_case_key")` when the JSON field name does
    not match the Kotlin property name (camelCase preferred for Kotlin properties).
 
-5. **kotlinx-datetime for time** — use `Clock.System.now()` instead of
-   `System.currentTimeMillis()` or any platform-specific date API.
+5. **`kotlin.time.Clock` for time.** Use `Clock.System.now()` instead of
+   `System.currentTimeMillis()` or any platform-specific date API. kotlinx-datetime is
+   not a dependency; the stdlib clock covers the one timestamp the app records.
 
 6. **Shared ViewModel pattern:**
    - `ConverterViewModel` in `:shared` accepts a `CoroutineScope` constructor parameter.
@@ -200,7 +208,7 @@ These rules are non-negotiable for the shared module:
 
 ## Testing
 
-Tests live in `shared/src/commonTest/`. Run with `./gradlew :shared:testDebugUnitTest`.
+Tests live in `shared/src/commonTest/`. Run with `./gradlew :shared:testAndroidHostTest`.
 
 - Use `FakeCurrencyApi` (implements `CurrencyApi` interface) for test doubles
 - Use `kotlinx-coroutines-test`: `runTest`, `StandardTestDispatcher`, `advanceUntilIdle()`
@@ -212,4 +220,5 @@ Tests live in `shared/src/commonTest/`. Run with `./gradlew :shared:testDebugUni
 ## CI
 
 CI runs via `.github/workflows/ci.yml` on PRs to main and pushes to main:
-`shared:build` → `shared:testDebugUnitTest` → `androidApp:assembleDebug` → `androidApp:testDebugUnitTest`
+one invocation, `./gradlew :shared:build :androidApp:assembleDebug :androidApp:testDebugUnitTest`.
+`:shared:build` already runs the shared host tests through `check`.

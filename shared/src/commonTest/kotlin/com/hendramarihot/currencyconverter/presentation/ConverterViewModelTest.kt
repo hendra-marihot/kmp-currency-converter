@@ -125,8 +125,8 @@ class ConverterViewModelTest {
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
-        assertNotNull(state.result)
-        assertEquals(100.0, state.result?.fromAmount)
+        val result = assertNotNull(state.result)
+        assertEquals(100.0, result.fromAmount)
     }
 
     @Test
